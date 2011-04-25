@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import cyql
+import cyql, psycopg2
 import twitter, logging
 import cPickle
+import time
 
 from config import dsn
 
@@ -43,20 +44,48 @@ def parse_tweet(text):
 
     return (address, city, loc, event)
 
-#tweets = []
-#for i in range(0,1):
-#    temp = twitter.get("http://api.twitter.com/1/statuses/user_timeline.json", screen_name='SBCFireDispatch', count=200, page=i)
-#    tweets.extend(temp)
-#cPickle.dump(tweets, open("stuff", "w"))
+def eat_tweets(tweets, rejects):
+    for tweet in tweets:
+        try:
+            address, city, loc, event = parse_tweet(tweet['text'])
+            location = ",".join(loc)
+            tweetid = tweet['id_str']
+            timestamp = tweet['created_at']
+            url = "http://twitter.com/%s/status/%s" % (tweet['user']['screen_name'], tweetid)
 
-tweets = cPickle.load(open("stuff"))
+            eventtype = sql.all('''
+                select id from eventtypes where type = %(event)s
+                    ''')
+            if len(eventtype) != 0:
+                (eventtype,), = eventtype
+            else:
+                (eventtype,), = sql.all('''
+                    insert into eventtypes (type) VALUES (%(event)s) RETURNING id
+                        ''')
 
-sql = cyql.connect(dsn)
+            try:
+                sql.run('''
+                    insert into events (id, address, city, url, type, location, time)
+                        VALUES (%(tweetid)s, %(address)s, %(city)s, %(url)s, %(eventtype)s, %(location)s, %(timestamp)s)
+                        ''')
+            except psycopg2.IntegrityError:
+                pass
+        except Exception, e:
+            print e
+            rejects.append(tweet)
 
-for tweet in tweets:
-    # tweet['created_at']
-    parsed = parse_tweet(tweet['text'])
-    if parsed:
-        print "Tweet!", parsed
-    else:
-        print "Failed!", tweet
+if __name__ == "__main__":
+    sql = cyql.connect(dsn)
+
+    rejects = []
+    for i in range(0,16):
+        try:
+            tweets = twitter.get("http://api.twitter.com/1/statuses/user_timeline.json", screen_name='SBCFireDispatch', count=200, page=i)
+            eat_tweets(tweets, rejects)
+        except Exception, e:
+            print e
+        time.sleep(15)
+    cPickle.dump(rejects, open("rejects", "w"))
+
+    #tweets = cPickle.load(open("stuff"))
+
