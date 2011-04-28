@@ -36,12 +36,16 @@ def main_page():
 def latest_events(count=25):
     sql = cyql.connect(dsn)
     try:
-        data = sql.all('''
+        events = sql.all('''
             select address, city, url, type, location, time
                 from events limit %(count)s
             ''')
-    except:
-        return json_error()
+        data = []
+        for event in events:
+            loc = [x.strip() for x in event[4].strip('()').split(',')]
+            data.append({'name': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
+    except Exception, e:
+        return json_error(str(e))
 
     return json_success(data)
 
