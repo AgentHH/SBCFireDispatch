@@ -63,5 +63,22 @@ def events_between(**args):
 
     return json_success({'startdate': start, 'enddate': end})
 
+@app.route('/api/eventtypes')
+def event_types():
+    sql = cyql.connect(dsn)
+    types = {}
+    try:
+        data = sql.all('''
+            select id, type from eventtypes
+            ''')
+        for item in data:
+            if item[0] in types:
+                return json_error("error when making type list")
+            types[item[0]] = item[1]
+    except Exception, e:
+        return json_error(str(e))
+
+    return json_success(types)
+
 if __name__ == "__main__":
     app.run(debug=True)
