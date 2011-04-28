@@ -18,7 +18,7 @@ def json_success(data):
     ret = {'status': 1,
             'data': data}
 
-    return json.dumps(data, cls=ISODateEncoder)
+    return json.dumps(ret, cls=ISODateEncoder)
 
 def json_error(error=None):
     ret = {'status': 0}
