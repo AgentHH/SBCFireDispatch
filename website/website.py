@@ -50,7 +50,7 @@ def latest_events(count=25):
         data = []
         for event in events:
             loc = [x.strip() for x in event[4].strip('()').split(',')]
-            data.append({'name': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
+            data.append({'desc': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
     except Exception, e:
         return json_error(str(e))
 
@@ -83,7 +83,7 @@ def events_between(**args):
         data = []
         for event in events:
             loc = [x.strip() for x in event[4].strip('()').split(',')]
-            data.append({'name': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
+            data.append({'desc': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
     except Exception, e:
         return json_error(str(e))
 
