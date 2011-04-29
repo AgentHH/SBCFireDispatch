@@ -147,11 +147,19 @@ def event_search():
         if not params.set_order(qs['order']):
             return json_error("invalid order")
 
-    results = do_search(params)
-    if not results:
-        return json_error("unable to complete search: %s" % (pprint.pformat(results)))
+    try:
+        events = do_search(params)
+        if not events:
+            return json_error("unable to complete search")
 
-    return json_success({'returned': len(results), 'events': results})
+        data = []
+        for event in events:
+            loc = [x.strip() for x in event[4].strip('()').split(',')]
+            data.append({'desc': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
+    except Exception, e:
+        return json_error(str(e))
+
+    return json_success({'returned': len(data), 'events': data})
 
 @app.route('/api/latest')
 @app.route('/api/latest/<int:count>')
