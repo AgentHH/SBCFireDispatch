@@ -1,0 +1,23 @@
+Author: Hans Nielsen <agenthh@gmail.com>
+
+This is meant to monitor the Twitter feed of the Santa Barbara County Fire Dispatch.
+http://twitter.com/sbcfiredispatch
+
+Currently, I'm using PostgresQL and Python.
+Python modules used are flask, psycopg2, dateutil, and twitter
+
+The scraper (birdscrape.py) works, but it will get rate-limited.
+
+Both programs need a config.py that looks like this: << EOF
+# various twitter things that I don't think you actually need
+consumer_key="asdf"
+consumer_secret="asdfasdf"
+access_token_key = "asdfasdfdasdfasdfasdf"
+access_token_secret = "asdjkashfkjasdh"
+
+dsn = {...} # standard psycopg2 database line
+
+apppath = "/path/to/app" # for mod_wsgi stuff
+EOF
+
+I'm currently using mod_wsgi with Apache2 to serve this.
