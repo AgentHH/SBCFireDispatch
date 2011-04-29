@@ -185,39 +185,6 @@ def latest_events(count=25):
 
     return json_success({'returned': len(data), 'events': data})
 
-@app.route('/api/between/<string:start>/<string:end>')
-def events_between(**args):
-    start = dateutil.parser.parse(args['start']) #.isoformat()
-    end = dateutil.parser.parse(args['end']) #.isoformat()
-
-    if not start and not end:
-        return json_error("both dates are malformed")
-    elif not start:
-        return json_error("start date is malformed")
-    elif not end:
-        return json_error("end date is malformed")
-    elif start > end:
-        return json_error("start is after end")
-    
-    count = max_records
-
-    sql = cyql.connect(dsn)
-    try:
-        events = sql.all('''
-            select address, city, url, type, location, time
-                from events
-                where time > %(start)s and time < %(end)s
-                limit %{max_records}s
-            ''')
-        data = []
-        for event in events:
-            loc = [x.strip() for x in event[4].strip('()').split(',')]
-            data.append({'desc': "%s, %s" % (event[0], event[1]), 'url': event[2], 'type': event[3], 'lat': loc[0], 'long': loc[1], 'time': event[5]})
-    except Exception, e:
-        return json_error(str(e))
-
-    return json_success({'returned': len(data), 'events': data})
-
 @app.route('/api/eventtypes')
 def event_types():
     sql = cyql.connect(dsn)
