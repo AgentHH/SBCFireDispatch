@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, render_template, url_for, request
 import cyql
 import pprint
 from config import dsn
@@ -28,9 +28,130 @@ def json_error(error=None):
 
     return json.dumps(ret)
 
+def do_search(params):
+    sql = cyql.connect(dsn)
+
+    return params.do_query(sql)
+
 @app.route('/')
 def main_page():
-    return "Nothing to see here, move along..."
+    return render_template("map.html")
+
+@app.route('/api/search')
+def event_search():
+    class SearchParameters(object):
+        eventtype = None
+        count = 25
+        location = None
+        radius = None
+        startdate = None
+        enddate = None
+        order = 'asc'
+
+        def set_count(self, count):
+            self.count = max(min(count, max_records), 1)
+            return True
+
+        def set_eventtype(self, eventtype):
+            self.eventtype = eventtype
+            return True
+
+        def set_location(self, locationstring):
+            coords = [double(x) for x in locationstring.split(",")]
+            if len(coords) != 2:
+                return False
+            self.coords = coords
+            return True
+
+        def set_radius(self, radius):
+            self.radius = radius
+            return True
+
+        def set_startdate(self, startdate):
+            self.startdate = dateutil.parser.parse(qs['startdate'])
+            if not self.startdate:
+                return False
+            self.startdate = self.startdate.isoformat()
+            return True
+
+        def set_enddate(self, enddate):
+            self.enddate = dateutil.parser.parse(qs['enddate'])
+            if not self.enddate:
+                return False
+            self.enddate = self.enddate.isoformat()
+            return True
+
+        def set_order(self, order):
+            order = order.strip().lower()
+            if order == 'asc':
+                self.order = 'asc'
+            elif order == 'desc':
+                self.order = 'desc'
+            else:
+                return False
+            return True
+
+        def do_query(self, sql):
+            query = ["select address, city, url, type, location, time from events"]
+
+            where = []
+            if self.eventtype:
+                where.append("type = %{self.eventtype}s")
+            if self.startdate:
+                where.append("time >= %{self.startdate}s")
+            if self.enddate:
+                where.append("time <= %{self.enddate}s")
+            if len(where) < 1:
+                return None
+            query.append("where " + " and ".join(where))
+
+            if self.order:
+                query.append("order by time %s" % (self.order))
+
+            query.append("limit %{self.count}s")
+
+            return sql.all(" ".join(query))
+
+    qs = request.args
+
+    if len(qs) < 1:
+        return json_error("can't search with no parameters")
+
+    params = SearchParameters()
+
+    if 'count' in qs:
+        if not params.set_count(qs['count']):
+            return json_error("unable to use given count")
+
+    if 'type' in qs:
+        if not params.set_eventtype(int(qs['type'])):
+            return json_error("unable to use given event type")
+
+    if 'location' in qs:
+        if not params.set_location(qs['location']):
+            return json_error("unable to use given location")
+
+    if 'radius' in qs:
+        if not params.set_radius(double(qs['radius'])):
+            return json_error("unable to use given radius")
+
+    if 'startdate' in qs:
+        if not params.set_startdate(qs['startdate']):
+            return json_error("invalid start date")
+
+    if 'enddate' in qs:
+        if not params.set_enddate(qs['enddate']):
+            return json_error("invalid end date")
+
+    if 'order' in qs:
+        if not params.set_order(qs['order']):
+            return json_error("invalid order")
+
+    results = do_search(params)
+    if not results:
+        return json_error("unable to complete search: %s" % (pprint.pformat(results)))
+
+    return json_success({'returned': len(results), 'events': results})
 
 @app.route('/api/latest')
 @app.route('/api/latest/<int:count>')
