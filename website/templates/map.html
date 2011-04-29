@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+<link href="http://code.google.com/apis/maps/documentation/javascript/examples/default.css" rel="stylesheet" type="text/css" />
+<title>Google Maps JavaScript API v3 Example: Map Simple</title>
+<script type="text/javascript" src="static/jquery-1.5.2.min.js"></script>
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+<script type="text/javascript">
+    var locations = [];
+
+    function initialize() {
+        $.getJSON("http://stackallocated.com/firedispatch/api/latest/100",
+            function(data) {
+                if (data.status == 1 && data.returned > 0) {
+                    var center = new google.maps.LatLng(34.634338,-120.0737);
+                    var myOptions = {
+                      zoom: 10,
+                      center: center,
+                      mapTypeId: google.maps.MapTypeId.ROADMAP
+                    }
+                    var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);
+    
+                    $.each(data.events, function(i, event) {
+                        var loc = new google.maps.LatLng(event.lat, event.long);
+                        var marker = new google.maps.Marker({
+                            position: loc,
+                            map: map,
+                            title: event.desc
+                        });
+                    });
+                } else {
+                    alert("whee" + data.status + " " + data.returned);
+                }
+            });
+    }
+</script>
+</head>
+<body onload="initialize()">
+  <div id="map_canvas"></div>
+  <div id="whee">Test</div>
+</body>
+</html>
