@@ -1,3 +1,4 @@
 import sys
-sys.path.append("/home/hans/sbcfiredispatch/website")
+from config import apppath
+sys.path.append(apppath)
 from website import app as application
